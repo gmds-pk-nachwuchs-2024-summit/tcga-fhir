@@ -1,0 +1,62 @@
+0 Study ID
+1 Patient ID
+2 Sample ID
+3 Diagnosis Age
+4 Neoplasm Disease Stage American Joint Committee on Cancer Code
+5 American Joint Committee on Cancer Publication Version Type
+6 Aneuploidy Score
+7 Buffa Hypoxia Score
+8 Cancer Type
+9 TCGA PanCanAtlas Cancer Type Acronym
+10 Cancer Type Detailed
+11 Last Communication Contact from Initial Pathologic Diagnosis Date
+12 Birth from Initial Pathologic Diagnosis Date
+13 Last Alive Less Initial Pathologic Diagnosis Date Calculated Day Value
+14 Disease Free (Months)
+15 Disease Free Status
+16 Months of disease-specific survival
+17 Disease-specific Survival status
+18 Ethnicity Category
+19 Form completion date
+20 Fraction Genome Altered
+21 Genetic Ancestry Label
+22 Neoplasm Histologic Grade
+23 Neoadjuvant Therapy Type Administered Prior To Resection Text
+24 ICD-10 Classification
+25 International Classification of Diseases for Oncology, Third Edition ICD-O-3 Histology Code
+26 International Classification of Diseases for Oncology, Third Edition ICD-O-3 Site Code
+27 Informed consent verified
+28 In PanCan Pathway Analysis
+29 MSI MANTIS Score
+30 MSIsensor Score
+31 Mutation Count
+32 New Neoplasm Event Post Initial Therapy Indicator
+33 Oncotree Code
+34 Overall Survival (Months)
+35 Overall Survival Status
+36 Other Patient ID
+37 American Joint Committee on Cancer Metastasis Stage Code
+38 Neoplasm Disease Lymph Node Stage American Joint Committee on Cancer Code
+39 American Joint Committee on Cancer Tumor Stage Code
+40 Person Neoplasm Cancer Status
+41 Progress Free Survival (Months)
+42 Progression Free Status
+43 Primary Lymph Node Presentation Assessment
+44 Prior Diagnosis
+45 Race Category
+46 Radiation Therapy
+47 Ragnum Hypoxia Score
+48 Number of Samples Per Patient
+49 Sample Type
+50 Sex
+51 Somatic Status
+52 Subtype
+53 Tissue Prospective Collection Indicator
+54 Tissue Retrospective Collection Indicator
+55 Tissue Source Site
+56 Tissue Source Site Code
+57 TMB (nonsynonymous)
+58 Tumor Disease Anatomic Site
+59 Tumor Type
+60 Patient Weight
+61 Winter Hypoxia Score
