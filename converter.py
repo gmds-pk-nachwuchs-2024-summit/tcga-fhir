@@ -21,6 +21,9 @@ STUDY_ID_SYSTEM = "https://www.cbioportal.org/study"
 STUDY_ID_VALUE = "paad_tcga_pan_can_atlas_2018"
 
 patients_uuid = dict()
+research_subject_uuid = dict()
+condition_uuid = dict()
+procedure_uuid = dict()
 
 
 def create_research_study():
@@ -51,23 +54,26 @@ def create_research_study():
     return research_study
 
 
-def create_patient(study_patient_id, secondary_patient_id, gender, living_status):
+def create_patient(study_subject_id, patient_id, gender, living_status):
     pat_identifier = Identifier.construct()
     pat_identifier.system = PATIENT_ID_SYSTEM
-    pat_identifier.value = secondary_patient_id.lower()
+    pat_identifier.value = patient_id.lower()
 
-    patients_uuid[study_patient_id] = str(uuid.uuid4())
+    patients_uuid[study_subject_id] = str(uuid.uuid4())
 
     pat = Patient.construct()
     pat.identifier = [pat_identifier]
     pat.gender = gender.lower()
     pat.deceasedBoolean = living_status
+    pat.id = patients_uuid[study_subject_id]
     return pat
 
 
 def create_research_subject(study_patient_id):
     pat_ref = Reference.construct(reference=f"Patient/{patients_uuid[study_patient_id]}")
     study_ref = Reference.construct(reference=f"ResearchStudy/{research_study_id}")
+
+    research_subject_uuid[study_patient_id] = str(uuid.uuid4())
 
     research_sub = ResearchSubject.construct(status="active")
     research_sub.subject = pat_ref
@@ -77,6 +83,7 @@ def create_research_subject(study_patient_id):
     pat_identifier.system = STUDY_PATIENT_ID_SYSTEM
     pat_identifier.value = study_patient_id
     research_sub.identifier = [pat_identifier]
+    research_sub.id = research_subject_uuid[study_patient_id]
     return research_sub
 
 
@@ -100,16 +107,26 @@ def get_label(icd_10_code):
             return "Bösartige Neubildung: Pankreas, nicht näher bezeichnet"
 
 
-def create_condition(patient_id, icd_code, onset_age):
+def create_condition(study_subject_id, icd_code, onset_age):
     age = Age.construct()
     age.value = float(onset_age)
     age.unit = "a"  # UCUM unit for year
 
-    condition = Condition.construct(clinicalStatus="active")
+    condition = Condition.construct(clinicalStatus={
+        "coding": [{
+            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+            "display": "Active",
+            "code": "active"
+        }]
+    })
     condition.subject = Reference.construct(
-        reference=f"Patient/{patients_uuid[patient_id]}"
+        reference=f"Patient/{patients_uuid[study_subject_id]}"
     )
     condition.onsetAge = age
+
+
+    condition_uuid[study_subject_id] = str(uuid.uuid4())
+    condition.id = condition_uuid[study_subject_id]
 
     condition_codeable = CodeableConcept.construct()
     condition_codeable.coding = list()
@@ -125,11 +142,14 @@ def create_condition(patient_id, icd_code, onset_age):
     return condition
 
 
-def create_procedure(patient_id):
+def create_procedure(study_subject_id):
     procedure = Procedure.construct(status="completed")
     procedure.subject = Reference.construct(
-        reference=f"Patient/{patients_uuid[patient_id]}"
+        reference=f"Patient/{patients_uuid[study_subject_id]}"
     )
+
+    procedure_uuid[study_subject_id] = str(uuid.uuid4())
+    procedure.id = procedure_uuid[study_subject_id]
 
     radiation_codeable = CodeableConcept.construct()
     radiation_codeable.coding = list()
@@ -149,7 +169,7 @@ def create_bundle(data_values):
     transaction_bundle = Bundle.construct()
     transaction_bundle.type = "transaction"
 
-    study_patient_id = data_values[1]
+    study_subject_id = data_values[1]
     onset_age = data_values[3]
     icd_10_code = data_values[24]
     is_alive = True if data_values[35] == "0:LIVING" else False
@@ -173,53 +193,46 @@ def create_bundle(data_values):
         url="ResearchSubject", method="POST"
     )
     research_subject_request.ifNoneExist = (
-        f"identifier={STUDY_PATIENT_ID_SYSTEM}|{study_patient_id}"
+        f"identifier={STUDY_PATIENT_ID_SYSTEM}|{study_subject_id}"
     )
 
     pat = create_patient(
-        study_patient_id=study_patient_id,
-        secondary_patient_id=secondary_pat_id,
+        study_subject_id=study_subject_id,
+        patient_id=secondary_pat_id,
         gender=gender,
         living_status=is_alive,
     )
-    research_subject = create_research_subject(study_patient_id=study_patient_id)
-    condition = create_condition(study_patient_id, icd_10_code, onset_age)
+    research_subject = create_research_subject(study_patient_id=study_subject_id)
+    condition = create_condition(study_subject_id, icd_10_code, onset_age)
 
     procedure_entry = None
 
     if radio_therapy:
         procedure_entry = BundleEntry.construct()
-        procedure_entry.resource = create_procedure(study_patient_id)
+        procedure_entry.resource = create_procedure(study_subject_id=study_subject_id)
         procedure_entry.request = BundleEntryRequest.construct(
             url="Procedure", method="POST"
         )
-        procedure_entry.fullUrl = str(uuid.uuid4())
+        procedure_entry.fullUrl = f"Procedure/{procedure_uuid[study_subject_id]}"
 
     pat_entry = BundleEntry.construct()
     pat_entry.resource = pat
     pat_entry.request = pat_entry_request
-    pat_entry.fullUrl = patients_uuid[study_patient_id]
-
-    research_study_entry = BundleEntry.construct()
-    research_study_entry.resource = create_research_study()
-    research_study_entry.request = research_study_request
-    research_study_entry.fullUrl = research_study_id
+    pat_entry.fullUrl = f"Patient/{patients_uuid[study_subject_id]}"
 
     research_subject_entry = BundleEntry.construct()
     research_subject_entry.resource = research_subject
     research_subject_entry.request = research_subject_request
-    research_subject_entry.fullUrl = str(uuid.uuid4())
+    research_subject_entry.fullUrl = f"ResearchSubject/{research_subject_uuid[study_subject_id]}"
 
     condition_entry = BundleEntry.construct()
     condition_entry.resource = condition
     condition_entry.request = BundleEntryRequest.construct(
         url="Condition", method="POST"
     )
-    condition_entry.fullUrl = str(uuid.uuid4())
-
+    condition_entry.fullUrl = f"Condition/{condition_uuid[study_subject_id]}"
     transaction_bundle.entry = [
         pat_entry,
-        research_study_entry,
         research_subject_entry,
         condition_entry,
     ]
@@ -227,7 +240,7 @@ def create_bundle(data_values):
     if procedure_entry:
         transaction_bundle.entry.append(procedure_entry)
 
-    return transaction_bundle, study_patient_id
+    return transaction_bundle, study_subject_id
 
 
 if __name__ == "__main__":
@@ -238,13 +251,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--research-study-id")
     args = parser.parse_args()
-    if not args.research_study_id:
-        research_study_id = str(uuid.uuid4())
-    else:
-        research_study_id = args.research_study_id
-
     out_path = Path("bundles")
     out_path.mkdir(exist_ok=True)
+    if not args.research_study_id:
+        research_study_id = str(uuid.uuid4())
+        study_out_name = out_path.joinpath(f"study.json")
+        with open(study_out_name, "w") as of:
+            print(study_out_name)
+            of.write(create_research_study().json(ensure_ascii=False, indent=2))
+        exit(0)
+    else:
+        research_study_id = args.research_study_id
 
     for line in lines[1:]:
         values = line.split("\t")
